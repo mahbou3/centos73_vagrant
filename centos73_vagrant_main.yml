@@ -1,0 +1,89 @@
+##### centos73_vagrant_main Start #####
+
+- hosts: all
+  become: True
+  max_fail_percentage: 0
+  vars:
+    this_bookname: centos73_vagrant_main
+    root_password: cent@5963
+    root_password_hash: "{{ root_password | password_hash('sha512') }}"
+  tasks:
+    - name: 1.Mkdir-1
+      file: path=/var/ansible/ state=directory mode=0755
+      check_mode: no
+
+    - name: 2.Mkdir-2
+      file: path=/conf_bk/ state=directory mode=0755
+      check_mode: no
+
+    - name: 3.Mkdir-3
+      file: path=/data/mainte/ state=directory mode=0755
+      check_mode: no
+
+    - name: 4.Setting root account
+      user: name=root groups=sys password="{{ root_password_hash }}"
+
+    - name: 5.Enabling synchronize module
+      lineinfile: 
+        dest: /etc/sudoers.d/sudo_rsync
+        owner: root
+        group: root
+        mode: 0440
+        state: present
+        create: yes
+        line: 'Defaults!/usr/bin/rsync    !requiretty'
+        validate: 'visudo -cf %s'
+      check_mode: no
+
+    - name: 6.Updating yum
+      yum: name=yum state=latest
+
+    - name: 7.Installing yum-priorities
+      yum: name=yum-priorities state=present
+
+    - name: 8.Setting the priority of Base repository
+      ini_file: 
+        dest: /etc/yum.repos.d/CentOS-Base.repo
+        section: "{{ item.name }}"
+        option: priority
+        value: "{{ item.num }}"
+        no_extra_spaces: yes
+      with_items: 
+        - { name: base, num: 1 }
+        - { name: updates, num: 2 }
+        - { name: extras, num: 2 }
+        - { name: centosplus, num: 2 }
+
+    - name: 9.Installing epel-release
+      yum: name=epel-release state=present
+
+    - name: 10.Setting the priority of EPEL repository
+      ini_file: 
+        dest: /etc/yum.repos.d/epel.repo
+        section: epel
+        option: "{{ item.opt }}"
+        value: "{{ item.val }}"
+        no_extra_spaces: yes
+      with_items: 
+        - { opt: enabled, val: 1 }
+        - { opt: priority, val: 2 }
+
+    - name: 11.Installing Needed Packages via yum
+      yum: name="{{ item }}" state=present
+      with_items:
+        - curl
+        - jq
+        - telnet
+        - traceroute
+        - python-pip
+        - python-argparse
+        - MySQL-python
+        - git
+
+    - name: 12.Installing Needed Packages via pip
+      pip: name="{{ item }}" state=present
+      with_items:
+        - boto
+      ignore_errors: "{{ ansible_check_mode }}"
+
+##### centos73_vagrant_main End #####

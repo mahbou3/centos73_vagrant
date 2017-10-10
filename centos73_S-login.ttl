@@ -1,0 +1,44 @@
+; sample macro of Tera Term
+;
+; File: centos73_S-login.ttl
+; Description: auto login with SSH2 protocol
+; Environment: generic
+; Update: 2017/10/10
+; Author: masahiro21
+
+username = 'vagrant'
+ipaddress = '127.0.0.1'
+hostname = 'centos73'
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 1.コマンド組立て
+getdir mydir
+COMMAND = ipaddress
+strconcat COMMAND ':2222 /ssh /2 /auth=publickey /keyfile="'
+strconcat COMMAND mydir
+strconcat COMMAND '\.vagrant\machines\'
+strconcat COMMAND hostname
+strconcat COMMAND '\virtualbox\private_key" /user='
+strconcat COMMAND username
+ 
+;; 2.接続
+connect COMMAND
+ 
+;; 3.接続判定1（接続出来ない場合はメッセージを表示しマクロ終了）
+if result <> 2 then
+    messagebox 'It could not be connected.' 'Connection Error'
+    end
+endif
+ 
+;; 4.接続判定2（10秒以内にプロンプトが表示されない場合TeraTerm終了）
+timeout = 10
+wait '$' '#'
+if result = 0 end
+ 
+;; 5.文字コードを設定
+callmenu 54013  ; [KanjiCode] Recv: UTF-8
+callmenu 54113  ; [KanjiCode] Send: UTF-8
+ 
+;; 6.マクロ終了
+end
